@@ -15,7 +15,7 @@ from websockets.exceptions import ConnectionClosed
 from websockets.legacy import client
 
 from channel import BaseChannel
-from colors import SGR, RGBColor, RGB, printc, color, readable
+from colors import SGR, RGBColor, RGB, printc, colorize, readable
 from command import UserRole, Command, DenialReason, BaseContext
 from message import (MessageParser, Message, LoginMessage, CapabilitiesMessage,
                      PingMessage, ReconnectMessage, JoinMessage, PartMessage,
@@ -39,7 +39,7 @@ def divmods(value: int | float, **divisors) -> dict[str, int | float]:
     quotients["remainder"] = remainder
     return quotients
 
-def read_time(unix: int | float | str, time_type: Literal["stamp", "word"]) -> str:
+def readable_time(unix: int | float | str, time_type: Literal["stamp", "word"]) -> str:
     """
     Convert time in seconds to a readable format.\n
     `stamp` - timestamp, typical stopwatch counter\n
@@ -306,27 +306,27 @@ class BaseBot:
     async def _handle_001(self, msg: LoginMessage):
         if not self.config.rich_irc:
             return
-        print(f'<[{color(msg.type_, RGB.ORANGE)}] {color("Login successful!", RGB.GREEN)}')
+        print(f'<[{colorize(msg.type_, RGB.ORANGE)}] {colorize("Login successful!", RGB.GREEN)}')
 
     async def _handle_cap_ack(self, msg: CapabilitiesMessage):
         if self.config.capability and set(msg.capabilities) != set(self.config.capability):
             raise RuntimeError("Acquired capabilities do not match requested")
         if self.config.rich_irc:
-            print(f'<[{color(msg.type_, RGB.ORANGE)}] {", ".join(msg.capabilities)}')
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}] {", ".join(msg.capabilities)}')
 
     async def _handle_ping(self, msg: PingMessage):
         await self.irc.pong()  # type: ignore
         if self.config.rich_irc:
-            print(f'<[{color(msg.type_, RGB.ORANGE)}]')
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}]')
 
     async def _handle_reconnect(self, msg: ReconnectMessage):
         # server will disconnect for you, just clean up/save
         if self.config.rich_irc:
-            print(f'<[{color(msg.type_, RGB.ORANGE)}]')
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}]')
 
     async def _handle_whisper(self, msg: WhisperMessage):
-        print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-              f'{msg.from_} >> {msg.to}: {color(msg.message, SGR.YELLOW)}')
+        print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+              f'{msg.from_} >> {msg.to}: {colorize(msg.message, SGR.YELLOW)}')
 
     async def _handle_353(self, channel: BaseChannel, msg: NamesMessage):
         channel.userdata.users.update(set(msg.users))
@@ -340,10 +340,10 @@ class BaseBot:
     async def _handle_366(self, channel: BaseChannel, msg: EndOfNamesMessage):
         # channel connection message (end of connected users list)
         channel.connected = True
-        output_366: str = f'Successfully connected to {color(f"#{channel.name}", SGR.BLUE)}! ' \
+        output_366: str = f'Successfully connected to {colorize(f"#{channel.name}", SGR.BLUE)}! ' \
                           f'{len(channel.userdata.users)} users connected.'
         if self.config.rich_irc:
-            output_366 = f'<[{color(msg.type_, RGB.ORANGE)}] {output_366}'
+            output_366 = f'<[{colorize(msg.type_, RGB.ORANGE)}] {output_366}'
         print(output_366)
         if not self.irc:
             raise RuntimeError("IRC client not connected")
@@ -357,8 +357,8 @@ class BaseBot:
 
     async def _handle_notice(self, channel: BaseChannel, msg: NoticeMessage):
         assert msg.message, f'Expected msg.message from "{msg.type_}"'
-        print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-                f'<{color(f"#{channel.name}", SGR.BLUE)}> ' \
+        print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+                f'<{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
                 f'{msg.message} ({msg.tags["msg-id"]})')
 
     async def _handle_userstate(self, channel: BaseChannel, msg: UserstateMessage):
@@ -370,8 +370,8 @@ class BaseBot:
         if (len(msg.tags) > 1
             and all(int(value) != 1 for value in msg.tags.values())
             and int(msg.tags["followers-only"]) == -1):
-            print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-                  f'<{color(f"#{channel.name}", SGR.BLUE)}> Chat in default state.')
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+                  f'<{colorize(f"#{channel.name}", SGR.BLUE)}> Chat in default state.')
         else:
             output_roomstate: list[str] = []
             if len(msg.tags) == 1:
@@ -383,12 +383,12 @@ class BaseBot:
                         output_roomstate.append(mode)
                     elif int(value) == 1:
                         if tag == "slow":
-                            mode = f'{read_time(value, "word")} {tag} mode enabled.'
+                            mode = f'{readable_time(value, "word")} {tag} mode enabled.'
                         else:
                             mode = f"{tag} mode enabled."
                         output_roomstate.append(mode)
-            print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-                  f'<{color(f"#{channel.name}", SGR.BLUE)}> ' \
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+                  f'<{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
                   f'{" ".join(output_roomstate)}')
 
     async def _handle_clearchat(self, channel: BaseChannel, msg: ClearchatMessage):
@@ -397,23 +397,23 @@ class BaseBot:
                 output_cc: str = f'User "{msg.user}" timed out for {msg.tags["ban-duration"]}s'
             else:
                 output_cc = f'User "{msg.user}" banned'
-            print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-                  f'<{color(f"#{channel.name}", SGR.BLUE)}> {output_cc}')
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+                  f'<{colorize(f"#{channel.name}", SGR.BLUE)}> {output_cc}')
             if msg.user == self.config.username:
                 if "ban-duration" in msg.tags:
                     channel.messenger.timeout = (
                         channel.messenger.timeout+int(msg.tags["ban-duration"])+1)
                 else:
                     channel.messenger.timeout = -1
-                print(f'<{color(f"#{channel.name}", SGR.BLUE)}> ' \
+                print(f'<{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
                       f'Timeout set to {msg.tags["ban-duration"]}.')
         else:
-            print(f'<[{color(msg.type_, RGB.ORANGE)}] ' \
-                  f'<{color(f"#{channel.name}", SGR.BLUE)}> ' \
+            print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
+                  f'<{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
                   f'Chat was cleared by a moderator')
 
     async def _handle_clearmsg(self, channel: BaseChannel, msg: ClearmsgMessage):
-        print(f'<[{color(msg.type_, RGB.ORANGE)}] <{color(f"#{channel.name}", SGR.BLUE)}> ' \
+        print(f'<[{colorize(msg.type_, RGB.ORANGE)}] <{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
               f'Message from "{msg.tags["login"]}" deleted: {msg.message}')
 
     async def _handle_usernotice(self, channel: BaseChannel, msg: UsernoticeMessage):
@@ -422,7 +422,7 @@ class BaseBot:
             system_message += " - "
         login_user = msg.tags["login"] if "login" in msg.tags else ''
         notice_message = f": {msg.message}" if msg.message else ''
-        print(f'<[{color(msg.type_, RGB.ORANGE)}] <{color(f"#{channel.name}", SGR.BLUE)}> ' \
+        print(f'<[{colorize(msg.type_, RGB.ORANGE)}] <{colorize(f"#{channel.name}", SGR.BLUE)}> ' \
               f'({msg.tags["msg-id"]}) {system_message}{login_user}{notice_message}')
 
     async def _handle_privmsg(self, channel: BaseChannel, msg: ChatMessage):
@@ -443,43 +443,43 @@ class BaseBot:
 
         # log to console
         user_role = UserRole.from_message(self.ranks, msg)
-        name_display = msg.tags["display-name"] if "display-name" in msg.tags else msg.user
+        display_name = msg.tags["display-name"] if "display-name" in msg.tags else msg.user
         name_color = (get_name_color(msg.tags["color"][1:]) if msg.tags["color"] else RGB.GRAY)
-        colored_name_display = color(name_display, name_color)
+        colored_display_name = colorize(display_name, name_color)
         if user_role & UserRole.SUB:
-            name_display = f"[SUB] {name_display}"
-            colored_name_display = f'[{color("SUB", SUBSCRIBER_COLOR)}] {colored_name_display}'
+            display_name = f"[SUB] {display_name}"
+            colored_display_name = f'[{colorize("SUB", SUBSCRIBER_COLOR)}] {colored_display_name}'
         if user_role & UserRole.MOD:
-            name_display = f"[MOD] {name_display}"
-            colored_name_display = f'[{color("MOD", RGB.GREEN)}] {colored_name_display}'
+            display_name = f"[MOD] {display_name}"
+            colored_display_name = f'[{colorize("MOD", RGB.GREEN)}] {colored_display_name}'
         elif user_role & UserRole.VIP:
-            name_display = f"[VIP] {name_display}"
-            colored_name_display = f'[{color("VIP", RGB.PINK)}] {colored_name_display}'
+            display_name = f"[VIP] {display_name}"
+            colored_display_name = f'[{colorize("VIP", RGB.PINK)}] {colored_display_name}'
 
-        unix = round(perf_counter()-self.start_time, 3)
+        uptime = round(perf_counter()-self.start_time, 3)
         timestamp_format = self.config.timestamp_format
         match timestamp_format:
             case 'uptime':
-                timestamp = read_time(unix, "stamp")
+                timestamp = readable_time(uptime, "stamp")
             case '12h' | '24h':
                 date_time = datetime.fromtimestamp(int(msg.tags["tmi-sent-ts"])/1000)
                 time_format = "%I:%M:%S %p" if timestamp_format == '12h' else "%H:%M:%S"
                 timestamp = datetime.strftime(date_time, time_format)
 
         if msg.message.startswith("/me"):
-            colored_message = f'{colored_name_display} {color(msg.message[4:], name_color)}'
+            colored_message = f'{colored_display_name} {colorize(msg.message[4:], name_color)}'
         else:
-            colored_message = f'{colored_name_display}: {color(msg.message, SGR.YELLOW)}'
-        print(f'    [{color(timestamp, SGR.CYAN)}] ' \
-              f'<{color(f"#{channel.name}", SGR.BLUE)}> {colored_message}')
+            colored_message = f'{colored_display_name}: {colorize(msg.message, SGR.YELLOW)}'
+        print(f'    [{colorize(timestamp, SGR.CYAN)}] ' \
+              f'<{colorize(f"#{channel.name}", SGR.BLUE)}> {colored_message}')
 
         # update chat history
         if len(channel.history) == self.config.history_limit:
             channel.purge_oldest_message()
-        channel.history.append({"unix": unix,
-                                "disp": name_display,
-                                "user": msg.user,
+        channel.history.append({"timestamp": uptime,
+                                "display_name": display_name,
+                                "username": msg.user,
                                 "message": msg.message})
-        channel.userdata.history[msg.user].append((unix, msg.message))
+        channel.userdata.history[msg.user].append((uptime, msg.message))
 
         await Command.check_command(self, msg)

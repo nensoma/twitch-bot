@@ -104,8 +104,8 @@ class MessageParser:
                 return None
 
         if params is not None:
-            if (chan_index := get_index(params, '#')) is not None:
-                return params[chan_index+1 : get_index(params, ' ', chan_index)]
+            if (channel_index := get_index(params, '#')) is not None:
+                return params[channel_index+1 : get_index(params, ' ', channel_index)]
 
     @staticmethod
     def _parse_message(data: list[str]) -> str | None:

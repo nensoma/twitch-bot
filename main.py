@@ -10,7 +10,7 @@ from dotenv import dotenv_values
 
 from bot import BaseConfig, BaseBot
 from channel import BaseChannel
-from colors import printc, RGB, colorize
+from colors import printc, RGB, colorize_type
 from command import UserRole, BaseContext, Command, CommandPerm, ArgumentError
 from timer_ import Timer
 

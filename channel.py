@@ -139,9 +139,9 @@ class BaseChannel:
 
         class HistoryMsg(TypedDict):
             """A message in a channel's message history."""
-            unix: float
-            disp: str
-            user: str
+            timestamp: float
+            display_name: str
+            username: str
             message: str
 
         self.name = name
@@ -172,9 +172,9 @@ class BaseChannel:
     def purge_oldest_message(self):
         """Remove the oldest message and its data completely from the message history."""
         pop_msg = self.history.pop(0)
-        self.userdata.history[pop_msg["user"]].pop(0)
-        if not self.userdata.history[pop_msg["user"]]:
-            del self.userdata.history[pop_msg["user"]]
+        self.userdata.history[pop_msg["username"]].pop(0)
+        if not self.userdata.history[pop_msg["username"]]:
+            del self.userdata.history[pop_msg["username"]]
 
     @property
     def activity_allowed(self) -> bool:

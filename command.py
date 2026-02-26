@@ -127,7 +127,7 @@ class Parameters:
             param = self.entries[i]
             if isinstance(param, str):
                 if arg != param:
-                    raise ArgumentError("Format error in argument")
+                    raise ArgumentError("Format error in arguments")
             elif isinstance(param, Parameter):
                 if param.options and arg not in param.options:
                     raise ArgumentError(f'Argument "{arg}" not in {param.options}')

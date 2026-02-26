@@ -6,7 +6,7 @@ from time import perf_counter
 import requests
 
 from bot import BaseBot
-from colors import SGR, RGB, printc, color, colorize
+from colors import SGR, RGB, printc, colorize, colorize_type
 from command import CommandPerm, Command, ArgumentError, BaseContext
 from timer_ import Timer
 
@@ -89,10 +89,10 @@ async def command_help(ctx: BaseContext):
 async def list_statuses(ctx: BaseContext):
     printc("[BOT STATUS]", RGB.PINK)
     for channel in ctx.bot.channels.values():
-        print(f'    <{color(f"#{channel.name}", SGR.BLUE)}> - ' \
-              f'Live status: {colorize(channel.live)}, ' \
-              f'Mod status: {colorize(channel.mod)}, ' \
-              f'Locally active: {colorize(channel.active)}')
+        print(f'    <{colorize(f"#{channel.name}", SGR.BLUE)}> - ' \
+              f'Live status: {colorize_type(channel.live)}, ' \
+              f'Mod status: {colorize_type(channel.mod)}, ' \
+              f'Locally active: {colorize_type(channel.active)}')
 
 @Command.command("live", None, "Check if the stream is currently live.", global_cd=10, user_cd=30)
 async def show_live_status(ctx: BaseContext):

@@ -19,7 +19,7 @@ class ANSIColor(ABC):
     def _as_sequence(self, is_background: bool = False) -> str:
         """ANSI escape sequence for a color."""
 
-    def color(self, content: Any, is_background: bool = False) -> str:
+    def colorize(self, content: Any, is_background: bool = False) -> str:
         """Colorize a string using ANSI escape sequences."""
         return f"{self._as_sequence(is_background)}{str(content)}\33[0m"
 
@@ -70,9 +70,9 @@ class Palette(Enum):
     def __getitem__(self, index: int | slice):
         return self.value[index]
 
-    def color(self, content: Any, is_background: bool = False) -> str:
+    def colorize(self, content: Any, is_background: bool = False) -> str:
         """Colorize a string using ANSI escape sequences."""
-        return self.value.color(content, is_background)
+        return self.value.colorize(content, is_background)
 
 
 class SGR(Palette):
@@ -129,21 +129,21 @@ class RGB(Palette):
 
 MIN_COLOR, MAX_COLOR = (255, 85, 85), (85, 85, 255)
 
-def color(content: Any, fg_color: SGR | RGB | RGBColor,
-          bg_color: SGR | RGB | RGBColor | None = None) -> str:
+def colorize(content: Any, fg_color: SGR | RGB | RGBColor,
+             bg_color: SGR | RGB | RGBColor | None = None) -> str:
     """Colorize text using ANSI escape sequences via SGR or RGB formats."""
     if bg_color is None:
-        return fg_color.color(content)
+        return fg_color.colorize(content)
     fg_color = fg_color.value if isinstance(fg_color, RGB) else fg_color
     bg_color = bg_color.value if isinstance(bg_color, RGB) else bg_color
     if (type(fg_color), type(bg_color)) not in {(SGR, SGR), (RGBColor, RGBColor)}:
         raise TypeError("Mismatched color types")
-    return bg_color.color(fg_color.color(content), is_background=True)
+    return bg_color.colorize(fg_color.colorize(content), is_background=True)
 
 def printc(content: str, fg_color: SGR | RGB | RGBColor,
            bg_color: SGR | RGB | RGBColor | None = None):
     """Shorthand for printing a fully-colored string."""
-    print(color(content, fg_color, bg_color))
+    print(colorize(content, fg_color, bg_color))
 
 def readable(rgb: RGB | RGBColor) -> RGBColor:
     """
@@ -158,14 +158,14 @@ def readable(rgb: RGB | RGBColor) -> RGBColor:
         rgb = RGBColor(*map(lambda pair: int(sum(pair)), intermediate))
     return rgb
 
-def colorize(value: None | bool | list | tuple | set | dict | int | float,
-             invert: bool = False, scale: tuple[int, int] | None = None) -> str:
+def colorize_type(value: None | bool | list | tuple | set | dict | int | float,
+                  invert: bool = False, scale: tuple[int, int] | None = None) -> str:
     """Convert a value to a type-dependent colored string representation."""
     match value:
         case None:
             return "None"
         case bool():
-            return color(value, RGB.GREEN) if invert ^ value else color(value, RGB.RED)
+            return colorize(value, RGB.GREEN) if invert ^ value else colorize(value, RGB.RED)
         case list() | tuple() | set() | dict():
             items, original_type = [], type(value)
             (key_color, value_color), delimiter = {
@@ -178,11 +178,12 @@ def colorize(value: None | bool | list | tuple | set | dict | int | float,
                 value = list(value.items())
             for item in value:
                 new_key, new_value = item if isinstance(item, tuple) else (item, None)
-                new_key = (color(f"'{new_key}'", key_color)
-                           if isinstance(new_key, str) else color(new_key, key_color))
+                new_key = (colorize(f"'{new_key}'", key_color)
+                           if isinstance(new_key, str) else colorize(new_key, key_color))
                 if new_value:
-                    new_value = (color(f"'{new_value}'", value_color)
-                                 if isinstance(new_value, str) else color(new_value, value_color))
+                    new_value = (colorize(f"'{new_value}'", value_color)
+                                 if isinstance(new_value, str)
+                                 else colorize(new_value, value_color))
                 items.append(f'{new_key}{f": {new_value}" if new_value else ""}')
             return f"{delimiter[0]}{', '.join(items)}{delimiter[1]}"
         case int() | float():
@@ -191,9 +192,9 @@ def colorize(value: None | bool | list | tuple | set | dict | int | float,
             if not (isinstance(scale, tuple) and len(scale) == 2):
                 raise ValueError("Range must be tuple of size 2 (min, max) [inclusive]")
             if value not in range(scale[0], scale[1]+1):  # type: ignore
-                return color(value, RGB.LIGHT_GRAY)
+                return colorize(value, RGB.LIGHT_GRAY)
             percent = int((value-scale[0]) / (scale[1]-scale[0]) * 100)  # type: ignore
             rgb_diff = tuple(x-y for x, y in zip(MAX_COLOR, MIN_COLOR))
             final_color = tuple(x+int(y*(percent/100)) for x, y in zip(MIN_COLOR, rgb_diff))
-            return color(value, RGBColor(*final_color))
+            return colorize(value, RGBColor(*final_color))
     raise TypeError(f"Colorization of type {type(value).__name__} not supported")
