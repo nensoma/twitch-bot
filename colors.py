@@ -53,8 +53,10 @@ class RGBColor(ANSIColor):
         """Convert a hex string to an RGB color."""
         if len(hex_string) not in {3, 6}:
             raise ValueError("Hex string must be 3 or 6 characters long")
+        if any(char.upper() not in "0123456789ABCDEF" for char in hex_string):
+            raise ValueError("Invalid hex values")
         if len(hex_string) == 3:
-            hex_string = ''.join([char*2 for char in hex_string])
+            hex_string = ''.join(char*2 for char in hex_string)
         return cls(int(hex_string[0:2], 16),
                    int(hex_string[2:4], 16),
                    int(hex_string[4:6], 16))
@@ -158,7 +160,7 @@ def readable(rgb: RGB | RGBColor) -> RGBColor:
         rgb = RGBColor(*map(lambda pair: int(sum(pair)), intermediate))
     return rgb
 
-def colorize_type(value: None | bool | list | tuple | set | dict | int | float,
+def colorize_type(value: None | bool | list | tuple | set | dict | int | float, *,
                   invert: bool = False, scale: tuple[int, int] | None = None) -> str:
     """Convert a value to a type-dependent colored string representation."""
     match value:

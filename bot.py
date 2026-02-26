@@ -83,20 +83,20 @@ class BaseConfig:
     def from_env(cls) -> BaseConfig:
         """Create a config instance from a .env file."""
         config_fields = [field.name.upper() for field in fields(cls)]
-        config = dict(dotenv_values(".env").items())
+        config: dict[str, Any] = dict(dotenv_values(".env").items())
         if not set(config_fields).issubset(set(config.keys())):
             raise RuntimeError("One or more configuration fields are missing")
         for key, value in config.items():
             if key in {"ONLINE_CHANNELS", "OFFLINE_CHANNELS", "CAPABILITY"}:
-                config[key] = tuple(json.loads(value))  # type: ignore
+                config[key] = tuple(json.loads(value))
             elif key in {"RICH_IRC", "SHOW_ERRORS"}:
-                config[key] = value == "True"  # type: ignore
+                config[key] = value == "True"
             elif key in {"HISTORY_LIMIT"}:
-                config[key] = int(value)  # type: ignore
+                config[key] = int(value)
             elif key not in config_fields:
                 del config[key]
         config = {key.lower(): value for key, value in config.items()}
-        return cls(**config)  # type: ignore
+        return cls(**config)
 
     @staticmethod
     def initialize_env():
@@ -170,8 +170,8 @@ class BaseConfig:
 class Ranks:
     """User permission data not provided in messages."""
     owner: str
-    admins: list[str] = field(default_factory=list)
-    blacklist: list[str] = field(default_factory=list)
+    admins: set[str] = field(default_factory=set)
+    blacklist: set[str] = field(default_factory=set)
 
     def check_blacklist(self, user: str) -> DenialReason:
         """Check if a user is currently blacklisted from the bot."""
@@ -200,12 +200,15 @@ class BaseBot:
         try:
             with open("ranks.json", 'r', encoding="UTF-8") as file:
                 ranks = json.loads(file.read())
-            self.ranks = Ranks(**ranks)
+            self.ranks = Ranks(owner=ranks["owner"], admins=set(ranks["admins"]),
+                               blacklist=set(ranks["blacklist"]))
         except FileNotFoundError:
             print("ranks.json not found, creating one...")
             self.ranks = Ranks(owner=self.config.username)  # default owner is the bot itself
+            ranks = asdict(self.ranks)
+            ranks["admins"], ranks["blacklist"] = list(ranks["admins"]), list(ranks["blacklist"])
             with open("ranks.json", 'w', encoding="UTF-8") as file:
-                file.write(json.dumps(asdict(self.ranks), indent=4, separators=(',', ': ')))
+                file.write(json.dumps(ranks, indent=4, separators=(',', ': ')))
             print("Edit ranks.json and relaunch the bot to update ranks.")
 
         self.start_time = perf_counter()
@@ -425,6 +428,8 @@ class BaseBot:
               f'({msg.tags["msg-id"]}) {system_message}{login_user}{notice_message}')
 
     async def _handle_privmsg(self, channel: BaseChannel, msg: ChatMessage):
+        uptime = round(perf_counter()-self.start_time, 3)
+
         # store/update user_id data
         user_id = msg.tags["user-id"]
         if msg.user not in channel.uid_manager.users[user_id]:
@@ -455,7 +460,6 @@ class BaseBot:
             display_name = f"[VIP] {display_name}"
             colored_display_name = f'[{colorize("VIP", RGB.PINK)}] {colored_display_name}'
 
-        uptime = round(perf_counter()-self.start_time, 3)
         timestamp_format = self.config.timestamp_format
         match timestamp_format:
             case 'uptime':

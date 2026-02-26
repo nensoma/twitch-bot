@@ -108,11 +108,10 @@ class UIDManager:
 @dataclass(slots=True)
 class UserData:
     """Per-channel data pertaining to users in chat."""
-    UserHistoryMsg = tuple[float, str]
 
     users: set[str]
     mods: set[str]
-    history: dict[str, list[UserHistoryMsg]]
+    history: dict[str, list[tuple[float, str]]]
     cooldowns: dict[str, dict[str, float]]
 
     def break_pings(self, message: str) -> str:
@@ -162,19 +161,19 @@ class BaseChannel:
         """Shorthand for breaking username pings based on active users."""
         return self.userdata.break_pings(message)
 
-    def set_cooldown(self, command_name: str, length: float, user: str | None = None):
+    def set_cooldown(self, command_name: str, expiry: float, user: str | None = None):
         """Add a cooldown for a command, optionally for a specific user."""
         if not user:
-            self.cooldowns[command_name] = length
+            self.cooldowns[command_name] = expiry
         else:
-            self.userdata.cooldowns[user][command_name] = length
+            self.userdata.cooldowns[user][command_name] = expiry
 
     def purge_oldest_message(self):
         """Remove the oldest message and its data completely from the message history."""
-        pop_msg = self.history.pop(0)
-        self.userdata.history[pop_msg["username"]].pop(0)
-        if not self.userdata.history[pop_msg["username"]]:
-            del self.userdata.history[pop_msg["username"]]
+        purge_msg = self.history.pop(0)
+        self.userdata.history[purge_msg["username"]].pop(0)
+        if not self.userdata.history[purge_msg["username"]]:
+            del self.userdata.history[purge_msg["username"]]
 
     @property
     def activity_allowed(self) -> bool:

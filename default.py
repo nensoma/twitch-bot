@@ -26,12 +26,15 @@ async def update_command_cooldowns(bot: BaseBot):
     """Update command cooldowns to remove those that expired."""
     for channel in bot.channels.values():
         channel.cooldowns = {
-            k: v for k, v in channel.cooldowns.items() if v-perf_counter() > 0}
+            command_name: expiry for command_name, expiry
+            in channel.cooldowns.items() if expiry-perf_counter() > 0}
         for username, cooldowns in channel.userdata.cooldowns.items():
             channel.userdata.cooldowns[username] = {
-                k: v for k, v in cooldowns.items() if v-perf_counter() > 0}
+                command_name: expiry for command_name, expiry
+                in cooldowns.items() if expiry-perf_counter() > 0}
         channel.userdata.cooldowns = defaultdict(dict,
-            {k: v for k, v in channel.userdata.cooldowns.items() if v})
+            {username: cooldowns for username, cooldowns
+             in channel.userdata.cooldowns.items() if cooldowns})
 
 @Timer.timer("reset_sent", interval=30)
 async def reset_sent(bot: BaseBot):
@@ -144,5 +147,5 @@ async def default_prefix(ctx: BaseContext):
                  CommandPerm.ADMIN, prefix='', hide=True)
 async def cross_chat(ctx: BaseContext):
     if not (channel := ctx.bot.channels.get(ctx.args["channel"])):
-        raise RuntimeError(f'Channel "{ctx.args["channel"]}" not found!')
+        raise ArgumentError(f'Channel "{ctx.args["channel"]}" not found!')
     await channel.send(f'<#{ctx.channel.name}> {ctx.user}: {ctx.args["message"]}')

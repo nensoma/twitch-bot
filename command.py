@@ -122,7 +122,8 @@ class Parameters:
                              or isinstance(param, str)))
         max_args = len(self.entries)
         if len(args) not in range(min_args, max_args+1):
-            raise ArgumentError(f"Too few/many arguments ({min_args}-{max_args} required)")
+            arg_range = str(min_args) if min_args == max_args else f"{min_args}-{max_args}"
+            raise ArgumentError(f"Too few/many arguments ({arg_range} required)")
         for i, arg in enumerate(args):
             param = self.entries[i]
             if isinstance(param, str):
@@ -276,10 +277,10 @@ class Command:
         try:
             args = self.params.parse_args(arg_string, role)
             await self(BaseContext(bot, msg, channel, args))
-        except Exception as error:  # pylint: disable=broad-except
-            printc(repr(error), RGB.RED)
+        except Exception as e:  # pylint: disable=broad-except
+            printc(repr(e), RGB.RED)
             if bot.config.show_errors:
-                await channel.send(f"Error: {str(error)}")
+                await channel.send(f"Error: {str(e)}")
         else:
             if role < UserRole.MOD:
                 self.apply_cooldown(channel, msg)
