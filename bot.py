@@ -223,8 +223,7 @@ class BaseBot:
             raw_data: str = await self.irc.websocket.recv()  # type: ignore
             messages = raw_data.strip().split("\r\n")
             for line in messages:
-                msg = MessageParser.from_raw(line)
-                await self.message_handler(msg)
+                await self.message_handler(MessageParser.from_raw(line))
 
     async def start(self):
         """Start the bot."""
@@ -264,7 +263,7 @@ class BaseBot:
             active_online = channel_name in self.config.online_channels
             active_offline = channel_name in self.config.offline_channels
             await self._add_channel(channel_name, active_online, active_offline)
-            await self.irc.join(channel_name)  # type: ignore
+            await self.irc.join(channel_name)
 
     async def _add_channel(self, channel_name: str, active_online: bool, active_offline: bool):
         """Add a channel to the bot."""
@@ -298,7 +297,7 @@ class BaseBot:
             if msg.type_ in {"001", "CAP * ACK", "PING", "RECONNECT", "WHISPER"}:
                 await handler(msg)
             else:
-                channel = self.channels.get(msg.channel, None)  # type: ignore
+                channel = self.channels.get(msg.channel)  # type: ignore
                 await handler(channel, msg)
         elif self.config.rich_irc:
             print(f"Unhandled IRC type: {msg} {msg.raw}")
@@ -315,7 +314,7 @@ class BaseBot:
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}] {", ".join(msg.capabilities)}')
 
     async def _handle_ping(self, msg: PingMessage):
-        await self.irc.pong()  # type: ignore
+        await self.irc.pong()
         if self.config.rich_irc:
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}]')
 

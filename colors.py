@@ -129,14 +129,14 @@ class RGB(Palette):
 
 MIN_COLOR, MAX_COLOR = (255, 85, 85), (85, 85, 255)
 
-def colorize(content: Any, fg_color: SGR | RGB | RGBColor,
-             bg_color: SGR | RGB | RGBColor | None = None) -> str:
+def colorize(content: Any, fg_color: SGR | RGB | SGRColor | RGBColor,
+             bg_color: SGR | RGB | SGRColor | RGBColor | None = None) -> str:
     """Colorize text using ANSI escape sequences via SGR or RGB formats."""
     if bg_color is None:
         return fg_color.colorize(content)
-    fg_color = fg_color.value if isinstance(fg_color, RGB) else fg_color
-    bg_color = bg_color.value if isinstance(bg_color, RGB) else bg_color
-    if (type(fg_color), type(bg_color)) not in {(SGR, SGR), (RGBColor, RGBColor)}:
+    fg_color = fg_color.value if isinstance(fg_color, (SGR, RGB)) else fg_color
+    bg_color = bg_color.value if isinstance(bg_color, (SGR, RGB)) else bg_color
+    if type(fg_color) is not type(bg_color):
         raise TypeError("Mismatched color types")
     return bg_color.colorize(fg_color.colorize(content), is_background=True)
 
@@ -191,9 +191,9 @@ def colorize_type(value: None | bool | list | tuple | set | dict | int | float,
                 raise ValueError("Cannot colorize number without range")
             if not (isinstance(scale, tuple) and len(scale) == 2):
                 raise ValueError("Range must be tuple of size 2 (min, max) [inclusive]")
-            if value not in range(scale[0], scale[1]+1):  # type: ignore
+            if value not in range(scale[0], scale[1]+1):
                 return colorize(value, RGB.LIGHT_GRAY)
-            percent = int((value-scale[0]) / (scale[1]-scale[0]) * 100)  # type: ignore
+            percent = int((value-scale[0]) / (scale[1]-scale[0]) * 100)
             rgb_diff = tuple(x-y for x, y in zip(MAX_COLOR, MIN_COLOR))
             final_color = tuple(x+int(y*(percent/100)) for x, y in zip(MIN_COLOR, rgb_diff))
             return colorize(value, RGBColor(*final_color))

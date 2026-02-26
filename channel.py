@@ -52,7 +52,7 @@ class Messenger:
             message += " \U000E0000"
         if self.bot.active and self.channel.active and self.channel.activity_allowed:
             if self.sent < self.ratelimit:
-                await self.bot.irc.submit(self.channel.name, message)  # type: ignore
+                await self.bot.irc.submit(self.channel.name, message)
                 self.last_message = message
                 self.sent += 1
             else:

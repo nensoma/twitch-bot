@@ -140,7 +140,7 @@ async def default_prefix(ctx: BaseContext):
     Command.set_prefix(ctx.args["prefix"])
     await ctx.channel.send(f'Default command prefix updated to "{ctx.args["prefix"]}".')
 
-@Command.command("@", "<channel> <message>", "Send a message to another channel.",
+@Command.command("@", "<channel> <message+>", "Send a message to another channel.",
                  CommandPerm.ADMIN, prefix='', hide=True)
 async def cross_chat(ctx: BaseContext):
     if not (channel := ctx.bot.channels.get(ctx.args["channel"])):

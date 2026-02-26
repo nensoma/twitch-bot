@@ -1,6 +1,4 @@
 """Anything that involves sending IRC messages to Twitch."""
-from __future__ import annotations
-
 from websockets.legacy.protocol import WebSocketCommonProtocol
 
 from colors import SGR, RGB, colorize

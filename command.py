@@ -24,8 +24,8 @@ class UserRole(IntFlag):
     OWNER = 1 << 4
 
     def __str__(self):
-        output = [role.name.lower() for role in reversed(UserRole)  # type: ignore
-                  if role and self & role]
+        output = [role.name.lower() for role in reversed(UserRole)
+                  if role and role.name and self & role]
         return '+'.join(output)
 
     @classmethod
@@ -162,7 +162,7 @@ class Parameters:
                 if '=' in tag:
                     parameter.name, tag = tag.split('=', 1)
                     parameter.options = set(tag.split('|'))
-                elif '+' in tag:
+                elif tag.endswith('+'):
                     if i != len(syntax.split()) - 1:
                         raise ParameterError("Remainder parameter must be last in the syntax")
                     parameter.remainder, parameter.name = True, tag[:-1]
@@ -271,7 +271,7 @@ class Command:
                       channel: BaseChannel, arg_string: str | None):
         """Execute the code in the command's function, handling arguments and exceptions."""
         if arg_string is not None:
-            args = ''.join(filter(lambda x: x in PRINTABLE, arg_string)).strip()
+            arg_string = ''.join(filter(lambda x: x in PRINTABLE, arg_string)).strip()
         role = UserRole.from_message(bot.ranks, msg)
         try:
             args = self.params.parse_args(arg_string, role)
@@ -324,7 +324,6 @@ class Command:
         Parse a message to determine if any command
         should be triggered, and if so, handle that command.
         """
-        assert msg.message and msg.user and msg.channel
         channel = bot.channels[msg.channel]
         parts = msg.message.split(' ', 1)
         start, arg_string = parts if len(parts) == 2 else (parts[0], None)
