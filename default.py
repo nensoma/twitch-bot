@@ -42,12 +42,6 @@ async def reset_sent(bot: BaseBot):
     for channel in bot.channels.values():
         channel.messenger.sent = 0
 
-@Timer.timer("save_uids", interval=5*60)
-async def save_uids(bot: BaseBot):
-    """Save all username data to file."""
-    for channel in bot.channels.values():
-        channel.uid_manager.save_users()
-
 
 # FUNCTIONS - helpers
 

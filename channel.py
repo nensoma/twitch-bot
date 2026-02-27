@@ -3,8 +3,6 @@ from __future__ import annotations
 from asyncio import Queue, sleep
 from collections import defaultdict
 from dataclasses import dataclass, field
-import json
-import os
 import re
 from typing import TypedDict, TYPE_CHECKING
 
@@ -70,41 +68,6 @@ class Messenger:
         return 30 / self.ratelimit
 
 
-class UIDManager:
-    """Manager for Twitch user IDs and aliases in a channel."""
-    def __init__(self, directory: str, channel: str):
-        self.path = f"{directory}/{channel}"
-        if not os.path.exists(f"{self.path}"):
-            os.mkdir(f"{self.path}")
-        self.channel = channel
-        self.users = defaultdict(list)
-        self.get_users()
-
-    def get_users(self):
-        """Pull local username database into `self.users`."""
-        try:
-            with open(f"{self.path}/users.json", 'r', encoding="UTF-8") as file:
-                self.users = defaultdict(list, json.load(file))
-        except (FileNotFoundError, json.JSONDecodeError):
-            printc(f"Missing or broken users.json for #{self.channel}, " \
-                   f"creating a new one.", RGB.YELLOW)
-            with open(f"{self.path}/users.json", 'w', encoding="UTF-8") as file:
-                file.write(json.dumps(self.users, indent=4, separators=(',', ': ')))
-
-    def get_aliases(self, username: str) -> tuple[str,...]:
-        """Get all known aliases of a username. If none are found, return just the username."""
-        return tuple(set(self.users.get(username, [])) | {username})
-
-    def save_users(self):
-        """Update JSON files containing structured username data."""
-        with open(f"{self.path}/users.json", 'w', encoding="UTF-8") as file:
-            file.write(json.dumps(self.users, indent=4, separators=(',', ': ')))
-        # namechanges file is just for quick reference
-        namechanges = [names for names in self.users.values() if len(names) > 1]
-        with open(f"{self.path}/namechanges.txt", 'w', encoding="UTF-8") as file:
-            file.write('\n'.join([", ".join(names) for names in namechanges]))
-
-
 @dataclass(slots=True)
 class UserData:
     """Per-channel data pertaining to users in chat."""
@@ -133,8 +96,7 @@ class UserData:
 
 class BaseChannel:
     """Handles information for each channel the bot connects to."""
-    def __init__(self, bot: BaseBot, usernames_directory: str, name: str,
-                 active_online: bool, active_offline: bool):
+    def __init__(self, bot: BaseBot, name: str, active_online: bool, active_offline: bool):
 
         class HistoryMsg(TypedDict):
             """A message in a channel's message history."""
@@ -149,7 +111,6 @@ class BaseChannel:
         self.cooldowns: dict[str, float] = {}
         self.history: list[HistoryMsg] = []
         self.messenger = Messenger(bot, self)
-        self.uid_manager = UIDManager(usernames_directory, name)
         self.userdata = UserData(set(), set(), defaultdict(list), defaultdict(dict))
         self.connected = False
 

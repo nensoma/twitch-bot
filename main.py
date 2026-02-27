@@ -22,9 +22,8 @@ importlib.import_module("default")
 class Channel(BaseChannel):
     """Handles information for each channel the bot connects to."""
 
-    def __init__(self, bot: Bot, usernames_directory: str, name: str,
-                 active_online: bool, active_offline: bool):
-        super().__init__(bot, usernames_directory, name, active_online, active_offline)
+    def __init__(self, bot: Bot, name: str, active_online: bool, active_offline: bool):
+        super().__init__(bot, name, active_online, active_offline)
         # custom attributes and function calls
 
 
@@ -61,8 +60,7 @@ class Bot(BaseBot):
         # custom attributes and function calls
 
     async def _add_channel(self, channel_name: str, active_online: bool, active_offline: bool):
-        self.channels[channel_name] = Channel(
-            self, self.config.usernames_folder, channel_name, active_online, active_offline)
+        self.channels[channel_name] = Channel(self, channel_name, active_online, active_offline)
 
 
 @dataclass(slots=True)

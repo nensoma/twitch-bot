@@ -68,7 +68,6 @@ class BaseConfig:
     username: str
     online_channels: tuple[str]
     offline_channels: tuple[str]
-    usernames_folder: str
     rich_irc: bool
     show_errors: bool
     history_limit: int
@@ -105,7 +104,6 @@ class BaseConfig:
             "USERNAME": '',
             "ONLINE_CHANNELS": [],
             "OFFLINE_CHANNELS": [],
-            "USERNAMES_FOLDER": '',
             "RICH_IRC": True,
             "SHOW_ERRORS": True,
             "HISTORY_LIMIT": 1000,
@@ -138,10 +136,6 @@ class BaseConfig:
                     and not field_value):
                 return False
             match field_name:
-                case "USERNAMES_FOLDER":
-                    if all(separator not in field_value
-                           for separator in (os.path.sep, os.path.altsep)):
-                        return False
                 case "RICH_IRC" | "SHOW_ERRORS":
                     if not isinstance(field_value, bool):
                         return False
@@ -271,7 +265,7 @@ class BaseBot:
     async def _add_channel(self, channel_name: str, active_online: bool, active_offline: bool):
         """Add a channel to the bot."""
         self.channels[channel_name] = BaseChannel(
-            self, self.config.usernames_folder, channel_name, active_online, active_offline)
+            self, channel_name, active_online, active_offline)
 
     async def message_handler(self, msg: Message):
         """Process every message received from Twitch."""
@@ -429,15 +423,6 @@ class BaseBot:
 
     async def _handle_privmsg(self, channel: BaseChannel, msg: ChatMessage):
         uptime = round(perf_counter()-self.start_time, 3)
-
-        # store/update user_id data
-        user_id = msg.tags["user-id"]
-        if msg.user not in channel.uid_manager.users[user_id]:
-            if channel.uid_manager.users[user_id] and channel.mod:
-                previous_names = channel.uid_manager.users[user_id]
-                printc(f'Name change detected: ' \
-                       f'{", ".join(previous_names)} >> {msg.user}', RGB.PINK)
-            channel.uid_manager.users[user_id].append(msg.user)
 
         # update mod roles
         if msg.tags["mod"] == '1':

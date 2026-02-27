@@ -3,7 +3,7 @@ Twitch chat bot with extensibility support.
 ## Features
 - Connection to multiple channels (cross-channel communication possible)
 - Configuration, user ranks and blacklist
-- Chat history tracking and User ID recording (name change recognition)
+- Chat history tracking
 - Console colors (chat messages, bot logging, IRC messages)
 - Timers (scheduled recurring events)
 - Commands
@@ -16,7 +16,6 @@ The bot is configured via environment variables. The following variables are req
 |USERNAME|str|Twitch username of the bot account|''|
 |ONLINE_CHANNELS|list[str]|channels to act in while live|[]|
 |OFFLINE_CHANNELS|list[str]|channels to act in while not live|[]|
-|USERNAMES_FOLDER|str|path to folder storing username and ID data|''|
 |RICH_IRC|bool|whether to show more IRC data in the console|True|
 |SHOW_ERRORS|bool|whether to log errors to chat|True|
 |HISTORY_LIMIT|int|maximum messages in message history|1000|
