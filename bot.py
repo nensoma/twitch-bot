@@ -108,7 +108,7 @@ class BaseConfig:
             "SHOW_ERRORS": True,
             "HISTORY_LIMIT": 1000,
             "TIMESTAMP_FORMAT": "12h",
-            "URI": "ws://irc-ws.chat.twitch.tv:80",
+            "URI": "wss://irc-ws.chat.twitch.tv:443",
             "CLIENT_ID": '',
             "CLIENT_SECRET": '',
             "OAUTH": '',
