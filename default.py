@@ -149,3 +149,4 @@ async def cross_chat(ctx: BaseContext):
     if not (channel := ctx.bot.channels.get(ctx.args["channel"])):
         raise ArgumentError(f'Channel "{ctx.args["channel"]}" not found!')
     await channel.send(f'<#{ctx.channel.name}> {ctx.user}: {ctx.args["message"]}')
+    await ctx.channel.send(f'Sent message "{ctx.args["message"]}" to <#{channel.name}>')
