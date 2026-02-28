@@ -11,7 +11,7 @@ import os
 import sys
 from time import perf_counter
 import traceback
-from typing import Literal, Any
+from typing import Literal, Any, get_type_hints
 
 from dotenv import dotenv_values, set_key
 from websockets.exceptions import ConnectionClosed
@@ -82,22 +82,26 @@ class BaseConfig:
         """Create a config instance from a .env file."""
         config: dict[str, Any] = dict(dotenv_values(".env").items())
         config = {key.lower(): value for key, value in config.items()}
+        type_hints = get_type_hints(cls)
+        subconfigs: dict[str, type[SubConfig]] = {
+            field.name: type_hints[field.name] for field in fields(cls)}
         all_fields = [tuple(field.name for field in fields(subconfig))
-                      for subconfig in (BaseUsersConfig, BaseSettingsConfig, BaseIRCConfig)]
+                      for subconfig in subconfigs.values()]
         if not set(chain.from_iterable(all_fields)).issubset(set(config.keys())):
             raise RuntimeError("One or more configuration fields are missing")
-        return cls(BaseUsersConfig.from_env(config),
-                   BaseSettingsConfig.from_env(config),
-                   BaseIRCConfig.from_env(config))
+        subconfig_data = {field_name: subconfig.from_env(config)
+                          for field_name, subconfig in subconfigs.items()}
+        return cls(**subconfig_data)  # type: ignore
 
-    @staticmethod
-    def initialize_env():
+    @classmethod
+    def initialize_env(cls):
         """Create a default .env file."""
-        default = (BaseUsersConfig.default()
-                   | BaseSettingsConfig.default()
-                   | BaseIRCConfig.default())
-        for key, value in default.items():
-            BaseConfig.set_variable(key, value)
+        type_hints = get_type_hints(cls)
+        subconfigs: tuple[type[SubConfig]] = tuple(
+            type_hints[field.name] for field in fields(cls))
+        for subconfig in subconfigs:
+            for key, value in subconfig.default().items():
+                cls.set_variable(key, value)
 
     @staticmethod
     def set_variable(key: str, value: Any):
