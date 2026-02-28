@@ -97,6 +97,7 @@ class UserData:
 
 class BaseChannel:
     """Handles information for each channel the bot connects to."""
+
     def __init__(self, bot: BaseBot, name: str, active_online: bool, active_offline: bool):
 
         class HistoryMsg(TypedDict):

@@ -11,6 +11,7 @@ os.system("color")
 
 class ANSIColor(ABC):
     """A color implemented via ANSI escape sequence."""
+
     @abstractmethod
     def __init__(self):
         pass
@@ -26,6 +27,7 @@ class ANSIColor(ABC):
 
 class SGRColor(ANSIColor):
     """An ANSI color that uses a preset Select Graphic Rendition (SGR) parameter."""
+
     def __init__(self, value: int):
         self.value = value
 
@@ -35,6 +37,7 @@ class SGRColor(ANSIColor):
 
 class RGBColor(ANSIColor):
     """An ANSI color that supports RGB values directly."""
+
     def __init__(self, red: int, green: int, blue: int):
         self.red = red
         self.green = green
@@ -69,6 +72,7 @@ class RGBColor(ANSIColor):
 
 class Palette(Enum):
     """A collection of colors implementing ANSI escape sequences."""
+
     def __getitem__(self, index: int | slice):
         return self.value[index]
 
@@ -82,6 +86,7 @@ class SGR(Palette):
     Default SGR colors for console colorization.\n
     Dark colors are available but mostly undesirable.
     """
+
     DARK_RED = SGRColor(31)
     DARK_GREEN = SGRColor(32)
     DARK_BLUE = SGRColor(34)
@@ -107,6 +112,7 @@ class RGB(Palette):
     Common RGB colors.\n
     Dark colors are available but mostly undesirable.
     """
+
     DARK_RED = RGBColor(128, 0, 0)
     DARK_ORANGE = RGBColor(128, 64, 0)
     DARK_YELLOW = RGBColor(128, 128, 0)

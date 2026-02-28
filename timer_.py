@@ -10,6 +10,7 @@ class Timer:
     The function can be run independently of the timer
     by awaiting `Timer.timers[name]()`.
     """
+
     __slots__ = ["func", "interval", "last"]
     timers: dict[str, Timer] = {}
 

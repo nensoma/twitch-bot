@@ -29,6 +29,7 @@ class Channel(BaseChannel):
 @dataclass
 class Config(BaseConfig):
     """Configuration data for the Twitch bot."""
+
     users: UsersConfig
     settings: SettingsConfig
     irc: IRCConfig
@@ -37,18 +38,21 @@ class Config(BaseConfig):
 @dataclass
 class UsersConfig(BaseUsersConfig):
     """Configuration data that pertains to users and channels."""
+
     # custom attributes and parsing
 
 
 @dataclass
 class SettingsConfig(BaseSettingsConfig):
     """Configuration data that pertains to bot settings."""
+
     # custom attributes and parsing
 
 
 @dataclass
 class IRCConfig(BaseIRCConfig):
     """Configuration data that pertains to IRC connection and authentication."""
+
     # custom attributes and parsing
 
 
@@ -67,6 +71,7 @@ class Bot(BaseBot):
 @dataclass(slots=True)
 class Context(BaseContext):
     """Object for passing runtime data to a command."""
+
     bot: Bot
     channel: Channel
 

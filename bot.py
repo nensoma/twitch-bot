@@ -68,6 +68,7 @@ def get_name_color(hex_string: str) -> RGBColor:
 @dataclass
 class BaseConfig:
     """Configuration data for the Twitch bot."""
+
     users: BaseUsersConfig
     settings: BaseSettingsConfig
     irc: BaseIRCConfig
@@ -128,6 +129,7 @@ class SubConfig(ABC):
 @dataclass
 class BaseUsersConfig(SubConfig):
     """Configuration data that pertains to users and channels."""
+
     username: str
     online_channels: set[str]
     offline_channels: set[str]
@@ -165,6 +167,7 @@ class BaseUsersConfig(SubConfig):
 @dataclass
 class BaseSettingsConfig(SubConfig):
     """Configuration data that pertains to bot settings."""
+
     rich_irc: bool
     show_errors: bool
     history_limit: int
@@ -200,6 +203,7 @@ class BaseSettingsConfig(SubConfig):
 @dataclass
 class BaseIRCConfig(SubConfig):
     """Configuration data that pertains to IRC connection and authentication."""
+
     uri: str
     client_id: str
     client_secret: str
@@ -238,6 +242,7 @@ class BaseIRCConfig(SubConfig):
 @dataclass(slots=True)
 class Ranks:
     """User permission data not provided in messages."""
+
     owner: str
     admins: set[str] = field(default_factory=set)
     blacklist: set[str] = field(default_factory=set)

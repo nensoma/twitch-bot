@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 class UserRole(IntFlag):
     """Roles for command permissions."""
+
     NONE = 0
     SUB = 1 << 0
     VIP = 1 << 1
@@ -47,6 +48,7 @@ class UserRole(IntFlag):
 
 class DenialReason(Flag):
     """Reasons for denied command execution."""
+
     NONE = 0
     GLOBAL_COOLDOWN = 1 << 0
     USER_COOLDOWN = 1 << 1
@@ -56,6 +58,7 @@ class DenialReason(Flag):
 
 class CommandPerm(IntEnum):
     """Permissions for user roles."""
+
     NONE = 0
     SUB = 1 << 0
     VIP = 1 << 1
@@ -77,6 +80,7 @@ class CommandPerm(IntEnum):
 @dataclass(slots=True)
 class BaseContext:
     """Object for passing runtime data to a command."""
+
     bot: BaseBot
     msg: ChatMessage
     channel: BaseChannel
@@ -91,6 +95,7 @@ class BaseContext:
 @dataclass(slots=True)
 class Parameter:
     """A parameter for a command with various customization options."""
+
     name: str = ''
     required: bool = True
     perm: CommandPerm = CommandPerm.NONE
@@ -184,6 +189,7 @@ class Command:
     The function can still be run independently of the
     command by awaiting `Command.commands[name]()`.
     """
+
     commands: dict[str, Command] = {}
     default_prefix: str = '!'
 

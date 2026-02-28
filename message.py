@@ -6,6 +6,7 @@ import re
 
 class MessageParser:
     """Parser for IRC messages."""
+
     @classmethod
     def from_raw(cls, raw: str) -> Message:
         """Parse a raw IRC message into a usable Message instance."""
@@ -120,6 +121,7 @@ class MessageParser:
 @dataclass
 class Message:
     """IRC message received from Twitch."""
+
     raw: str
     type_: str
 
@@ -138,6 +140,7 @@ class LoginMessage(Message):
 @dataclass
 class CapabilitiesMessage(Message):
     """IRC message for acquired capabilities."""
+
     capabilities: list[str]
 
     def __str__(self) -> str:
@@ -163,6 +166,7 @@ class ReconnectMessage(Message):
 @dataclass
 class JoinMessage(Message):
     """IRC message for joining a channel."""
+
     channel: str
     user: str
 
@@ -173,6 +177,7 @@ class JoinMessage(Message):
 @dataclass
 class PartMessage(Message):
     """IRC message for leaving a channel."""
+
     channel: str
     user: str
 
@@ -183,6 +188,7 @@ class PartMessage(Message):
 @dataclass
 class NamesMessage(Message):
     """IRC message for a list of connected users."""
+
     channel: str
     users: list[str]
 
@@ -193,6 +199,7 @@ class NamesMessage(Message):
 @dataclass
 class EndOfNamesMessage(Message):
     """IRC message for the end of a list of connected users."""
+
     channel: str
 
     def __str__(self) -> str:
@@ -202,6 +209,7 @@ class EndOfNamesMessage(Message):
 @dataclass
 class NoticeMessage(Message):
     """IRC message for system messages, often related to commands."""
+
     channel: str
     message: str
     tags: dict[str, str]
@@ -214,6 +222,7 @@ class NoticeMessage(Message):
 @dataclass
 class UserstateMessage(Message):
     """IRC message for various data about the user."""
+
     channel: str
     tags: dict[str, str]
 
@@ -224,6 +233,7 @@ class UserstateMessage(Message):
 @dataclass
 class RoomstateMessage(Message):
     """IRC message for various data about the channel."""
+
     channel: str
     tags: dict[str, str]
 
@@ -234,6 +244,7 @@ class RoomstateMessage(Message):
 @dataclass
 class ClearchatMessage(Message):
     """IRC message for clearing a chat or all of a single user's message."""
+
     channel: str
     user: str | None
     tags: dict[str, str]
@@ -246,6 +257,7 @@ class ClearchatMessage(Message):
 @dataclass
 class ClearmsgMessage(Message):
     """IRC message for the deletion of a single message."""
+
     channel: str
     message: str
     tags: dict[str, str]
@@ -258,6 +270,7 @@ class ClearmsgMessage(Message):
 @dataclass
 class UsernoticeMessage(Message):
     """IRC message for any of various chat events."""
+
     channel: str
     message: str | None
     tags: dict[str, str]
@@ -270,6 +283,7 @@ class UsernoticeMessage(Message):
 @dataclass
 class WhisperMessage(Message):
     """IRC message for a private message."""
+
     from_: str
     to: str
     message: str
@@ -283,6 +297,7 @@ class WhisperMessage(Message):
 @dataclass
 class ChatMessage(Message):
     """IRC message for a message sent in chat."""
+
     channel: str
     user: str
     message: str

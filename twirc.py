@@ -6,6 +6,7 @@ from colors import SGR, RGB, colorize
 
 class NullWebsocket:
     """Placeholder for when a websocket is not available."""
+
     def __init__(self):
         pass
 
@@ -20,6 +21,7 @@ class NullWebsocket:
 
 class TwitchIRCClient:
     """IRC client for communicating with Twitch via websocket."""
+
     def __init__(self, websocket: WebSocketCommonProtocol | None = None,
                  rich_irc: bool = False):
         self.websocket = websocket or NullWebsocket()
