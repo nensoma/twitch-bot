@@ -19,7 +19,7 @@ The bot is configured via environment variables. The following variables are req
 |RICH_IRC|bool|whether to show more IRC data in the console|True|
 |SHOW_ERRORS|bool|whether to log errors to chat|True|
 |HISTORY_LIMIT|int|maximum messages in message history|1000|
-|TIMESTAMP_FORMAT|str|todo|"12h"|
+|TIMESTAMP_FORMAT|str|how to display timestamps in the console|"12h"|
 |URI|str|Twitch IRC Websocket URI|"wss://irc-ws.chat.twitch.tv:443"|
 |CLIENT_ID|str|application ID from Developer Console|''|
 |CLIENT_SECRET|str|application secret from Developer Console|''|
