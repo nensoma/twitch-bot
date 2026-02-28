@@ -34,16 +34,19 @@ class Config(BaseConfig):
     irc: IRCConfig
 
 
+@dataclass
 class UsersConfig(BaseUsersConfig):
     """Configuration data that pertains to users and channels."""
     # custom attributes and parsing
 
 
+@dataclass
 class SettingsConfig(BaseSettingsConfig):
     """Configuration data that pertains to bot settings."""
     # custom attributes and parsing
 
 
+@dataclass
 class IRCConfig(BaseIRCConfig):
     """Configuration data that pertains to IRC connection and authentication."""
     # custom attributes and parsing

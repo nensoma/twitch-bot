@@ -98,10 +98,11 @@ class Parameter:
     remainder: bool = False
 
 
-@dataclass(slots=True)
 class Parameters:
     """Handler for multiple command parameters."""
-    entries: list[Parameter | str]
+
+    def __init__(self, entries: list[Parameter | str]):
+        self.entries = entries
 
     def parse_args(self, arg_string: str | None, role: UserRole) -> dict[str, str]:
         """Parse matched command arguments into a dictionary."""

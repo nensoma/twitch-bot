@@ -2,7 +2,7 @@
 from __future__ import annotations
 from asyncio import Queue, sleep
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import re
 from typing import TypedDict, TYPE_CHECKING
 
@@ -12,15 +12,16 @@ if TYPE_CHECKING:
     from bot import BaseBot
 
 
-@dataclass
 class Messenger:
     """Manager for sending messages to a channel's chat."""
-    bot: BaseBot
-    channel: BaseChannel
-    sent: int = 0
-    last_message: str = ''
-    sendlist: Queue = field(default_factory=Queue)
-    timeout: int = 0
+
+    def __init__(self, bot: BaseBot, channel: BaseChannel):
+        self.bot = bot
+        self.channel = channel
+        self.sent: int = 0
+        self.last_message: str = ''
+        self.sendlist: Queue = Queue()
+        self.timeout: int = 0
 
     async def message_queue(self):
         """Process sent messages through a queue to ensure all are handled properly."""
