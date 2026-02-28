@@ -279,7 +279,7 @@ class Command:
             await self(BaseContext(bot, msg, channel, args))
         except Exception as e:  # pylint: disable=broad-except
             printc(repr(e), RGB.RED)
-            if bot.config.show_errors:
+            if bot.config.settings.show_errors:
                 await channel.send(f"Error: {str(e)}")
         else:
             if role < UserRole.MOD:

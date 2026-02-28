@@ -30,11 +30,11 @@ The bot is written to be extensible mostly via class inheritance and decorators.
 
 - To add bot features, subclass the `BaseBot` class and override relevant methods.
 - To add channel features, subclass the `BaseChannel` class and override relevant methods.
-- To add config entries, subclass the `BaseConfig` dataclass. If a value needs to be converted from a string, add such logic to the `from_env` method.
+- To add config entries, subclass the relevant `SubConfig` dataclass and override relevant methods. You can also create a new `SubConfig` subclass but you will need to add it as a new attribute of the `Config` dataclass.
 - To add a timer, decorate a function that takes a `Bot` argument with the `@Timer.timer` decorator.
 - To add a command, decorate a function that takes a `Context` argument with the `@Command.timer` decorator.
 
-`main.py` provides basic templates for such extensions, and `default.py` demonstrates how timers and functions should look in practice.
+`main.py` provides basic templates for such extensions, and `default.py` demonstrates how timers, functions, and commands look in practice.
 ## Requirements
 - Python 3.11 or higher
 - [requests](https://pypi.org/project/requests/), [websockets](https://pypi.org/project/websockets/), [dotenv](https://pypi.org/project/python-dotenv/)

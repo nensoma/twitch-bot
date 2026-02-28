@@ -1,14 +1,17 @@
 """Main bot operation."""
 # pylint: disable=missing-function-docstring,broad-exception-caught
 from __future__ import annotations
+from abc import ABC, abstractmethod
 from asyncio import new_event_loop, set_event_loop, run_coroutine_threadsafe, sleep
 from dataclasses import dataclass, field, asdict, fields
 from datetime import datetime
+from itertools import chain
 import json
 import os
+import sys
 from time import perf_counter
 import traceback
-from typing import Literal, Type, Any
+from typing import Literal, Any
 
 from dotenv import dotenv_values, set_key
 from websockets.exceptions import ConnectionClosed
@@ -65,55 +68,33 @@ def get_name_color(hex_string: str) -> RGBColor:
 @dataclass
 class BaseConfig:
     """Configuration data for the Twitch bot."""
-    username: str
-    online_channels: tuple[str]
-    offline_channels: tuple[str]
-    rich_irc: bool
-    show_errors: bool
-    history_limit: int
-    timestamp_format: str
-    uri: str
-    client_id: str
-    client_secret: str
-    oauth: str
-    capability: tuple[str]
+    users: BaseUsersConfig
+    settings: BaseSettingsConfig
+    irc: BaseIRCConfig
+
+    def validate(self) -> bool:
+        """Check whether or not the configuration values are valid."""
+        return self.users.validate() and self.settings.validate() and self.irc.validate()
 
     @classmethod
     def from_env(cls) -> BaseConfig:
         """Create a config instance from a .env file."""
-        config_fields = [field.name.upper() for field in fields(cls)]
         config: dict[str, Any] = dict(dotenv_values(".env").items())
-        if not set(config_fields).issubset(set(config.keys())):
-            raise RuntimeError("One or more configuration fields are missing")
-        for key, value in config.items():
-            if key in {"ONLINE_CHANNELS", "OFFLINE_CHANNELS", "CAPABILITY"}:
-                config[key] = tuple(json.loads(value))
-            elif key in {"RICH_IRC", "SHOW_ERRORS"}:
-                config[key] = value == "True"
-            elif key in {"HISTORY_LIMIT"}:
-                config[key] = int(value)
-            elif key not in config_fields:
-                del config[key]
         config = {key.lower(): value for key, value in config.items()}
-        return cls(**config)
+        all_fields = [tuple(field.name for field in fields(subconfig))
+                      for subconfig in (BaseUsersConfig, BaseSettingsConfig, BaseIRCConfig)]
+        if not set(chain.from_iterable(all_fields)).issubset(set(config.keys())):
+            raise RuntimeError("One or more configuration fields are missing")
+        return cls(BaseUsersConfig.from_env(config),
+                   BaseSettingsConfig.from_env(config),
+                   BaseIRCConfig.from_env(config))
 
     @staticmethod
     def initialize_env():
         """Create a default .env file."""
-        default = {
-            "USERNAME": '',
-            "ONLINE_CHANNELS": [],
-            "OFFLINE_CHANNELS": [],
-            "RICH_IRC": True,
-            "SHOW_ERRORS": True,
-            "HISTORY_LIMIT": 1000,
-            "TIMESTAMP_FORMAT": "12h",
-            "URI": "wss://irc-ws.chat.twitch.tv:443",
-            "CLIENT_ID": '',
-            "CLIENT_SECRET": '',
-            "OAUTH": '',
-            "CAPABILITY": ["commands", "membership", "tags"]
-            }
+        default = (BaseUsersConfig.default()
+                   | BaseSettingsConfig.default()
+                   | BaseIRCConfig.default())
         for key, value in default.items():
             BaseConfig.set_variable(key, value)
 
@@ -124,40 +105,134 @@ class BaseConfig:
             value = json.dumps(value)
         set_key(".env", key, str(value), quote_mode="never")
 
-    @property
-    def is_valid(self) -> bool:
-        """Whether the bot has a (mostly) valid configuration."""
-        if not self.channels:  # no channels added
-            return False
-        config_fields = [field.name.upper() for field in fields(self)]
-        for field_name in config_fields:
-            field_value = getattr(self, field_name.lower())
-            if (field_name not in {"ONLINE_CHANNELS", "OFFLINE_CHANNELS"}
-                    and not field_value):
-                return False
-            match field_name:
-                case "RICH_IRC" | "SHOW_ERRORS":
-                    if not isinstance(field_value, bool):
-                        return False
-                case "HISTORY_LIMIT":
-                    if not isinstance(field_value, int):
-                        return False
-                case "URI":
-                    if "://irc" not in field_value:
-                        return False
-                case "CLIENT_ID" | "CLIENT_SECRET":
-                    if not (len(field_value) == 30 and field_value.isalnum()):
-                        return False
-                case "OAUTH":
-                    if not (len(field_value) == 36 and field_value.startswith("oauth:")
-                            and field_value[6:].isalnum()):
-                        return False
-        return True
+
+@dataclass
+class SubConfig(ABC):
+    """Subcategories of configuration data for the Twitch bot."""
+
+    @abstractmethod
+    def validate(self) -> bool:
+        """Whether or not the subcategory config values are valid."""
+
+    @classmethod
+    @abstractmethod
+    def from_env(cls, variables: dict) -> SubConfig:
+        """Create a subconfig instance from environment variables."""
+
+    @staticmethod
+    @abstractmethod
+    def default() -> dict:
+        """Default values for a config subcategory."""
+
+
+@dataclass
+class BaseUsersConfig(SubConfig):
+    """Configuration data that pertains to users and channels."""
+    username: str
+    online_channels: set[str]
+    offline_channels: set[str]
+
+    def validate(self) -> bool:
+        return ((isinstance(self.username, str) and len(self.username) > 0)
+                and isinstance(self.online_channels, set)
+                and isinstance(self.offline_channels, set)
+                and len(self.all_channels) > 0
+                and all(isinstance(channel, str) for channel in self.all_channels))
+
+    @classmethod
+    def from_env(cls, variables: dict) -> BaseUsersConfig:
+        subconfig_fields = tuple(field.name for field in fields(cls))
+        variables = {k: v for k, v in variables.items() if k in subconfig_fields}
+        for key, value in variables.items():
+            if key in {"online_channels", "offline_channels"}:
+                variables[key] = set(json.loads(value))
+        return cls(**variables)
+
+    @staticmethod
+    def default() -> dict:
+        return {
+            "USERNAME": '',
+            "ONLINE_CHANNELS": [],
+            "OFFLINE_CHANNELS": [],
+            }
 
     @property
-    def channels(self) -> set[str]:
+    def all_channels(self) -> set[str]:
         """All channels the bot connects to."""
         return set(self.online_channels) | set(self.offline_channels)
+
+
+@dataclass
+class BaseSettingsConfig(SubConfig):
+    """Configuration data that pertains to bot settings."""
+    rich_irc: bool
+    show_errors: bool
+    history_limit: int
+    timestamp_format: str
+
+    def validate(self) -> bool:
+        return (isinstance(self.rich_irc, bool)
+                and (isinstance(self.show_errors, bool))
+                and (isinstance(self.history_limit, int) and self.history_limit > 0)
+                and self.timestamp_format in {"uptime", "12h", "24h"})
+
+    @classmethod
+    def from_env(cls, variables: dict) -> BaseSettingsConfig:
+        subconfig_fields = tuple(field.name for field in fields(cls))
+        variables = {k: v for k, v in variables.items() if k in subconfig_fields}
+        for key, value in variables.items():
+            if key in {"rich_irc", "show_errors"}:
+                variables[key] = value == "True"
+            elif key == "history_limit":
+                variables[key] = int(value)
+        return cls(**variables)
+
+    @staticmethod
+    def default() -> dict:
+        return {
+            "RICH_IRC": True,
+            "SHOW_ERRORS": True,
+            "HISTORY_LIMIT": 1000,
+            "TIMESTAMP_FORMAT": "12h"
+            }
+
+
+@dataclass
+class BaseIRCConfig(SubConfig):
+    """Configuration data that pertains to IRC connection and authentication."""
+    uri: str
+    client_id: str
+    client_secret: str
+    oauth: str
+    capability: set[str]
+
+    def validate(self) -> bool:
+        return ((isinstance(self.uri, str) and self.uri.startswith("wss://"))
+                and (len(self.client_id) == 30 and self.client_id.isalnum())
+                and (len(self.client_secret) == 30 and self.client_secret.isalnum())
+                and (len(self.oauth) == 36 and self.oauth.startswith("oauth:")
+                     and self.oauth[6:].isalnum())
+                and (isinstance(self.capability, set)
+                     and all(isinstance(cap, str) for cap in self.capability)))
+
+    @classmethod
+    def from_env(cls, variables: dict) -> BaseIRCConfig:
+        subconfig_fields = tuple(field.name for field in fields(cls))
+        variables = {k: v for k, v in variables.items() if k in subconfig_fields}
+        for key, value in variables.items():
+            if key == "capability":
+                variables[key] = set(json.loads(value))
+        return cls(**variables)
+
+    @staticmethod
+    def default() -> dict:
+        return {
+            "URI": "wss://irc-ws.chat.twitch.tv:443",
+            "CLIENT_ID": '',
+            "CLIENT_SECRET": '',
+            "OAUTH": '',
+            "CAPABILITY": ["commands", "membership", "tags"]
+            }
 
 
 @dataclass(slots=True)
@@ -178,8 +253,7 @@ SUBSCRIBER_COLOR = RGBColor(145, 70, 255)
 class BaseBot:
     """Universal chat bot manager for all connected channels."""
 
-    def __init__(self, config_cls: Type[BaseConfig], active: bool = True):
-        assert os.path.exists(".env"), ".env file missing"
+    def __init__(self, config_cls: type[BaseConfig], active: bool = True):
         assert issubclass(config_cls, BaseConfig)
         try:
             self.config = config_cls.from_env()
@@ -188,7 +262,8 @@ class BaseBot:
             print("Loading .env failed, generating a default...")
             BaseConfig.initialize_env()
             print("Update the .env file with necessary values and restart the bot.")
-        if not self.config or not self.config.is_valid:
+            sys.exit(1)
+        if not self.config.validate():
             raise RuntimeError("Invalid config file")
 
         try:
@@ -198,7 +273,7 @@ class BaseBot:
                                blacklist=set(ranks["blacklist"]))
         except FileNotFoundError:
             print("ranks.json not found, creating one...")
-            self.ranks = Ranks(owner=self.config.username)  # default owner is the bot itself
+            self.ranks = Ranks(owner=self.config.users.username)  # default owner is the bot itself
             ranks = asdict(self.ranks)
             ranks["admins"], ranks["blacklist"] = list(ranks["admins"]), list(ranks["blacklist"])
             with open("ranks.json", 'w', encoding="UTF-8") as file:
@@ -212,7 +287,7 @@ class BaseBot:
         self.active = active
         self.event_loop = new_event_loop()
         set_event_loop(self.event_loop)
-        self.irc = TwitchIRCClient(rich_irc=self.config.rich_irc)
+        self.irc = TwitchIRCClient(rich_irc=self.config.settings.rich_irc)
 
     async def poll_irc(self):
         """Poll the Twitch server continuously for incoming messages."""
@@ -224,14 +299,14 @@ class BaseBot:
 
     async def start(self):
         """Start the bot."""
-        async with client.Connect(self.config.uri) as websocket:
+        async with client.Connect(self.config.irc.uri) as websocket:
             self.irc.websocket = websocket
             self.running = True
 
             try:
                 server_poll = run_coroutine_threadsafe(self.poll_irc(), self.event_loop)
-                await self.irc.login(self.config.username, self.config.oauth)
-                await self.irc.request_capabilities(list(self.config.capability))
+                await self.irc.login(self.config.users.username, self.config.irc.oauth)
+                await self.irc.request_capabilities(list(self.config.irc.capability))
                 await sleep(2)  # give time for twitch to respond
                 await self._set_up_channels()
                 # preload live check in case the timer starts late
@@ -256,9 +331,9 @@ class BaseBot:
     async def _set_up_channels(self):
         """Set up channels listed in the config file."""
         self.channels.clear()
-        for channel_name in self.config.channels:
-            active_online = channel_name in self.config.online_channels
-            active_offline = channel_name in self.config.offline_channels
+        for channel_name in self.config.users.all_channels:
+            active_online = channel_name in self.config.users.online_channels
+            active_offline = channel_name in self.config.users.offline_channels
             await self._add_channel(channel_name, active_online, active_offline)
             await self.irc.join(channel_name)
 
@@ -296,28 +371,29 @@ class BaseBot:
             else:
                 channel = self.channels.get(msg.channel)  # type: ignore
                 await handler(channel, msg)
-        elif self.config.rich_irc:
+        elif self.config.settings.rich_irc:
             print(f"Unhandled IRC type: {msg} {msg.raw}")
 
     async def _handle_001(self, msg: LoginMessage):
-        if not self.config.rich_irc:
+        if not self.config.settings.rich_irc:
             return
         print(f'<[{colorize(msg.type_, RGB.ORANGE)}] {colorize("Login successful!", RGB.GREEN)}')
 
     async def _handle_cap_ack(self, msg: CapabilitiesMessage):
-        if self.config.capability and set(msg.capabilities) != set(self.config.capability):
+        if (self.config.irc.capability
+            and set(msg.capabilities) != set(self.config.irc.capability)):
             raise RuntimeError("Acquired capabilities do not match requested")
-        if self.config.rich_irc:
+        if self.config.settings.rich_irc:
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}] {", ".join(msg.capabilities)}')
 
     async def _handle_ping(self, msg: PingMessage):
         await self.irc.pong()
-        if self.config.rich_irc:
+        if self.config.settings.rich_irc:
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}]')
 
     async def _handle_reconnect(self, msg: ReconnectMessage):
         # server will disconnect for you, just clean up/save
-        if self.config.rich_irc:
+        if self.config.settings.rich_irc:
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}]')
 
     async def _handle_whisper(self, msg: WhisperMessage):
@@ -338,7 +414,7 @@ class BaseBot:
         channel.connected = True
         output_366: str = f'Successfully connected to {colorize(f"#{channel.name}", SGR.BLUE)}! ' \
                           f'{len(channel.userdata.users)} users connected.'
-        if self.config.rich_irc:
+        if self.config.settings.rich_irc:
             output_366 = f'<[{colorize(msg.type_, RGB.ORANGE)}] {output_366}'
         print(output_366)
         if not self.irc:
@@ -361,7 +437,7 @@ class BaseBot:
         channel.mod = msg.tags["mod"] == "1"
 
     async def _handle_roomstate(self, channel: BaseChannel, msg: RoomstateMessage):
-        if not self.config.rich_irc:
+        if not self.config.settings.rich_irc:
             return
         if (len(msg.tags) > 1
             and all(int(value) != 1 for value in msg.tags.values())
@@ -395,7 +471,7 @@ class BaseBot:
                 output_cc = f'User "{msg.user}" banned'
             print(f'<[{colorize(msg.type_, RGB.ORANGE)}] ' \
                   f'<{colorize(f"#{channel.name}", SGR.BLUE)}> {output_cc}')
-            if msg.user == self.config.username:
+            if msg.user == self.config.users.username:
                 if "ban-duration" in msg.tags:
                     channel.messenger.timeout = (
                         channel.messenger.timeout+int(msg.tags["ban-duration"])+1)
@@ -445,7 +521,7 @@ class BaseBot:
             display_name = f"[VIP] {display_name}"
             colored_display_name = f'[{colorize("VIP", RGB.PINK)}] {colored_display_name}'
 
-        timestamp_format = self.config.timestamp_format
+        timestamp_format = self.config.settings.timestamp_format
         match timestamp_format:
             case 'uptime':
                 timestamp = readable_time(uptime, "stamp")
@@ -462,7 +538,7 @@ class BaseBot:
               f'<{colorize(f"#{channel.name}", SGR.BLUE)}> {colored_message}')
 
         # update chat history
-        if len(channel.history) == self.config.history_limit:
+        if len(channel.history) == self.config.settings.history_limit:
             channel.purge_oldest_message()
         channel.history.append({"timestamp": uptime,
                                 "display_name": display_name,

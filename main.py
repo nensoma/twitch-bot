@@ -4,11 +4,10 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 import importlib
 import json
-from typing import Type
 
 from dotenv import dotenv_values
 
-from bot import BaseConfig, BaseBot
+from bot import BaseConfig, BaseUsersConfig, BaseSettingsConfig, BaseIRCConfig, BaseBot
 from channel import BaseChannel
 from colors import printc, RGB, colorize_type
 from command import UserRole, BaseContext, Command, CommandPerm, ArgumentError
@@ -30,31 +29,30 @@ class Channel(BaseChannel):
 @dataclass
 class Config(BaseConfig):
     """Configuration data for the Twitch bot."""
-    # custom attributes
+    users: UsersConfig
+    settings: SettingsConfig
+    irc: IRCConfig
 
-    @classmethod
-    def from_env(cls) -> Config:
-        config_fields = [field.name.upper() for field in fields(cls)]
-        config = dict(dotenv_values(".env").items())
-        if not set(config_fields).issubset(set(config.keys())):
-            raise RuntimeError("One or more configuration fields are missing")
-        for key, value in config.copy().items():
-            if key in {"ONLINE_CHANNELS", "OFFLINE_CHANNELS", "CAPABILITY"}:
-                config[key] = tuple(json.loads(value))  # type: ignore
-            elif key in {"RICH_IRC", "SHOW_ERRORS"}:
-                config[key] = value == "True"  # type: ignore
-            elif key in {"HISTORY_LIMIT"}:
-                config[key] = int(value)  # type: ignore
-            elif key not in config_fields:
-                del config[key]
-        config = {key.lower(): value for key, value in config.items()}
-        return cls(**config)  # type: ignore
+
+class UsersConfig(BaseUsersConfig):
+    """Configuration data that pertains to users and channels."""
+    # custom attributes and parsing
+
+
+class SettingsConfig(BaseSettingsConfig):
+    """Configuration data that pertains to bot settings."""
+    # custom attributes and parsing
+
+
+class IRCConfig(BaseIRCConfig):
+    """Configuration data that pertains to IRC connection and authentication."""
+    # custom attributes and parsing
 
 
 class Bot(BaseBot):
     """Universal chat bot manager for all connected channels."""
 
-    def __init__(self, config_cls: Type[BaseConfig], active: bool = True):
+    def __init__(self, config_cls: type[BaseConfig], active: bool = True):
         super().__init__(config_cls, active)
         self.config: Config
         # custom attributes and function calls
